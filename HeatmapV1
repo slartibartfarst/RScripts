@@ -1,0 +1,44 @@
+## Clear Workspace
+rm(list = ls())
+
+## data import -- Install Packages if Needed!
+library(gplots)
+library(tidyverse)  # data manipulation
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+
+## Read CSV into new object - CHANGE PATH ACCORDINGLY
+LC <- read.csv("/users/Jay/Desktop/Pval_raw.csv", sep=",")
+row.names(LC) <- LC$ACC
+LC <- LC[1:798,2:34]
+LC <- data.matrix(LC)
+
+##Log Transformation and Scaling
+Log_LC <- log10(LC+1)
+SC_LC <- scale(Log_LC,scale = TRUE)
+y <- data.matrix(SC_LC)
+
+## Remove NA values - Converting to 0
+LC[is.na(LC)] <- 0
+
+
+## optimal cluster determination
+fviz_nbclust(y, kmeans, method = "wss")
+fviz_nbclust(y, kmeans, method = "silhouette")
+
+## Row- and column-wise clustering
+hr <- hclust(as.dist(1-cor(t(y), method="pearson")), method="complete")
+hc <- hclust(as.dist(1-cor(y, method="spearman")), method="complete") 
+ishc <- hclust(as.dist(1-cor(y, method="spearman")), method="complete") 
+mycl <- cutree(hr, h=max(hr$height)/1.01); mycolhc <- rainbow(length(unique(mycl)), start=0.1, end=0.9); mycolhc <- mycolhc[as.vector(mycl)] 
+cluster <- as.matrix(mycl)
+
+## Plot heatmap 
+mycol <- colorpanel(75, "red", "black", "green") # or try redgreen(75)
+heatmap.2(y, Rowv=as.dendrogram(hr), Colv=as.dendrogram(hc), col=mycol, density.info="none", trace="none", dendrogram="both", key.xlab="NA", key.ylab="NA", scale="row",labRow=FALSE, labCol = FALSE)
+
+## write.csv(cluster,"/Users/Jay/Desktop/Cluster3.csv",row.names=TRUE)
+## write.csv(y,"/Users/Jay/Desktop/GeneList.csv",,row.names=TRUE)
+
+final <- kmeans(LC, 4, nstart = 25)
+fviz_cluster(final, data = LC)
